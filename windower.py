@@ -3,6 +3,35 @@ import sys
 import pandas as pd
 from utilities import FunctionInputHandler
 
+def USelectWindow(df,x,y):
+    b=""
+    while b !='y':
+        # Untill the user is satisfied, allow them to select
+        #       Data that they need.
+        plt.close('all')
+        plt.plot(df[x], df[y], label="Data")
+        plt.grid(True)
+        plt.legend(loc='best', frameon=False)
+
+        coords = plt.ginput(2)
+        xax = [c[0] for c in coords]
+        cut = df[(df[x]<max(xax)) & (df[x]>min(xax))]
+        #other = df[df[B]>max(xax)]
+        #other = pandas.concat([other, df[df[B]<min(xax)]])
+        other = df[~(df[x]<max(xax)) & ~(df[x]>min(xax))]
+        print(other)
+        plt.close('all')
+        fig,ax = plt.subplots(2)
+        ax[0].scatter(other[B], other[y])
+        ax[1].scatter(cut[x], cut[y])
+        for i in ax:
+            i.grid(True)
+            i.legend(loc='best',frameon=True)
+        plt.show()
+        plt.close('all')
+        print("Window Width: ",max(xax)-min(xax))
+        b = input("Ok? (y/n): ")
+    return cut
 
 def MakeSteppedSpan(iterable, **kwargs):
     """
@@ -18,14 +47,42 @@ def MakeSteppedSpan(iterable, **kwargs):
     max_val = kwargs.pop("max_val", max(iterable))
     stepsize = kwargs.pop("stepsize",0)
     assert max_val-min_val>=stepsize
+    epsilon = sys.float_info.epsilon
 
     wholeIntervals= int(np.floor((max_val-min_val)/stepsize))-1
     if any([not isinstance(i, int) for i in iterable]):
-    	spans = [[min_val+stepsize*i, min_val+stepsize*(i+1)-sys.float_info.epsilon] for i in range(wholeIntervals)]
+    	spans = [[min_val+stepsize*i, min_val+stepsize*(i+1)\
+                  -epsilon] for i in range(wholeIntervals)]
     else:
-    	spans = [[min_val+stepsize*i, min_val+stepsize*(i+1)-1] for i in range(wholeIntervals)]
+    	spans = [[min_val+stepsize*i,\
+                   min_val+stepsize*(i+1)-1] for i in range(wholeIntervals)]
     spans.append([min_val+stepsize*wholeIntervals,max_val])
     return spans
+
+def SplitFile(df, numWindows, x="B Field (T)",**kwargs):
+    width=kwargs.get("width", int(len(df[B])/numWindows))
+    degenerate=kwargs.get('degenerate',False)
+    if degenerate:
+        try:
+        	stepsize=kwargs.get('stepsize')
+        except Exception as e:
+                raise KeyError("degenerate kwarg must be passed with stepsize:int kwarg")
+
+    # Define split-points for the DF based on the index
+    #   Split points correspond to the nth datapoint.
+    splits_for_df = numpy.arange(0,len(df[x])-1, width)
+
+    # range_for_df is a nested-list [[start1, end1], ...]
+    #   the difference between endX and start(X+1) is 1.
+    #   No data is "sliced out" of analysis.
+
+    if degenerate:
+        range_for_df = MakeSteppedSpan(splits_for_df, len(df[x])-1,\
+			      50,degenerate=degenerate,width=width)
+    else:
+        range_for_df = MakeSplitSpan(splits_for_df,max_val=len(df[x])-1)
+
+    return splits_for_df,range_for_df
 
 def main():
 	x='B Field (T)'
@@ -41,8 +98,6 @@ def main():
 	span = MakeSteppedSpan(xidx,stepsize=25)
 	print('ints:', span)
 
-main()
-
 def GetNumber(name):
     # Grabs a number from the filename that follows the lab's
     #   file naming convention
@@ -52,17 +107,6 @@ def GetNumber(name):
     print(c[0], name)
     return c[0]
 
-def ParseFile(file, s, y="P124A (V)"):
-    # The correction factor is able to scale a specific
-    #   stream of data by a constant. This is used ONLY
-    #   when, during experiment, we don't enter the
-    #   lock-in amplifier's sensitivity, properly into the
-    #   LABView program.
-    correction = s[int(GetNumber(file))]
 
-    with open(file, 'r') as f:
-        df = pandas.read_csv(f, delimiter=',')
-    if isinstance(correction,float):
-        df[y]=df[y].to_numpy()*correction
-
-    return df
+if __name__ == '__main__':
+	main()

@@ -86,4 +86,5 @@ def main():
 
     # Return True per PEP standards.
     return True
-main()
+if __name__ == '__main__':
+    main()
