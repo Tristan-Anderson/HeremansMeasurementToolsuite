@@ -46,7 +46,7 @@ def MakeSteppedSpan(iterable, **kwargs):
     min_val = kwargs.pop("min_val", min(iterable))
     max_val = kwargs.pop("max_val", max(iterable))
     stepsize = kwargs.pop("stepsize",0)
-    assert max_val-min_val>=stepsize
+    assert abs(max_val-min_val)>=stepsize
     epsilon = sys.float_info.epsilon
 
     wholeIntervals= int(np.floor((max_val-min_val)/stepsize))-1

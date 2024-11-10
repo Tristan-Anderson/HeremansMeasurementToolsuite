@@ -6,15 +6,12 @@ import matplotlib.pyplot as plt
 #Temp (K),B Field (T),P124A (V),SR830 X (V),SR830 Y (V),EGG7265 X (V),EGG7265 Y (V),K6487 V (V),K6487 I (A)
 
 
-def ElectPeaks(filename, **kwargs):
-    # Read the datafile we need to elect peaks from
-    with open(filename, 'r') as f:
-        analysisdf = pd.read_csv(f)
+def ElectPeaks(df, filename, **kwargs):
     # Get column labels (x,y), assign values to X, Y
     y = kwargs.pop('y', "P124A (V)")
     x = kwargs.pop('x', "B Field (T)")
-    X = analysisdf[x]
-    Y = analysisdf[y]
+    X = df[x]
+    Y = df[y]
     # Create plot
     fig,ax = plt.subplots()
     # Put data on plot
@@ -29,6 +26,37 @@ def ElectPeaks(filename, **kwargs):
     tuples = plt.ginput(-1, timeout=False)
     # Return tuples to parent function for further shaping
     return tuples
+
+def ElectABOPeaks(df,window,filename,identifier,**kwargs):
+    analysisdf = pandas.DataFrame()
+    y = kwargs.pop('y', "P124A (V)")
+    x = kwargs.pop('x', "B Field (T)")
+    fpath = kwargs.pop("path","")
+    selectregion=kwargs.pop("selectregion",True)
+
+    function="ThirdOrder"
+    fitname=y+" "+function+" fit"
+    fitsub=fitname+" subtraction"
+    #df = df.iloc[window[0]:window[1]]
+    # Does fit subtraction for whole window
+    df,fig = GFF(df,function,filename=filename,window=window)
+    if selectregion:
+        print("\n\nClick the suspected peaks of the Oscillation.")
+        print("Press ENTER. When all peaks have been denoted.")
+        print("Left click to mark, Right click to unmark.")
+        # User marks peaks.
+        tuples = plt.ginput(-1, timeout=False)
+        plt.close()
+    else:
+        return fig,df
+
+    s = StringIO()
+    print(window,file=s, end='')
+    wd = s.getvalue()
+
+    td = Extract(tuples)
+    analysisdf[wd] = td
+    return analysisdf
 
 
 

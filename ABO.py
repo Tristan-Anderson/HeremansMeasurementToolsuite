@@ -172,14 +172,18 @@ def ABOPeakElector(filename,		# String
     # Function Start
     try:
         for idx, w in enumerate(windows):
-            print(idx,w[0])
+            print(f'{filename} window {idx} of {len(windows)}')
             identifier=idx+w[0]
             if bycoordinates:
             	cut = df[(df[x]>w[0])&(df[x]<w[1])]
             else:
                 cut = df.iloc[w[0]:w[1]]
+            
             function="ThirdOrder"
-            df, fig = GFF(cut, function, filename=f'{filename} cut {identifier}', window=w)
+            if len(cut) == 0:
+                print(f"Empty df encountered at {filename}, in window {idx} of {len(windows)}, with bounds {w}")
+                continue
+            df_modified, fig = GFF(df, function, filename=f'{filename} cut {identifier}', window=w)
             if selectregion:
                 print('\n\nClick the suspected peaks of the oscillation.')
                 print('Press ENTER when all peaks have been denoted')
@@ -187,7 +191,7 @@ def ABOPeakElector(filename,		# String
                 tuples = plt.ginput(-1, timeout=False)
                 plt.close()
             else:
-                return fig,df
+                return fig,df_modified
             td = Extract(tuples)
             record[idx] = td
             #record = pandas.concat([record,peak_elector.ElectPeaks(cut,\
