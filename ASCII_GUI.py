@@ -1,3 +1,33 @@
+
+def complex_selector(d):
+	c = 'a'
+	res = []
+	while True:
+		Announcement("Choose measurements to analyze")
+		print_table_from_dict(d, leftcol="Option",rightcol="Measurement")
+		print("If you're done selecting: press ENTER")
+		print(r'To select everything, type: "*"')
+		print(r'To select a range of measurements, type "#-#"')
+		c = input("Input Mesaurement: ")
+		if c == "":
+			break
+		else:
+			if '-' in c:
+				[l,r] = c.split('-')
+				tr = [i for i in range(int(l),int(r)+1)]
+				[d.pop(i) for i in tr]
+				res += tr
+				continue
+			elif "*" in c:
+				return list(d.keys())+res
+			else:
+				d.pop(int(c))
+				res.append(c)
+	return res
+			
+		
+
+
 def print_table_from_dict(d, **kwargs):
     """Takes a dict and turns it into a nice table"""
     """

@@ -73,6 +73,8 @@ def hall(df, I, x='B Field (T)', y='P124A (V)', selx=False, f=None):
 			plt.scatter(datax,datay, color='black')
 			plt.pause(.75)
 			plt.close('all')
+		else:
+			pass
 	
 	# Fit data
 	pvar,_ = fit(line,xd,yd)

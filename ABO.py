@@ -227,15 +227,19 @@ def ABOMain(filenames:list, s,**kwargs):
             record = pandas.DataFrame()
         # Open actual data file
         df = utilities.ReadDatFile(filename,correction=s[filename])
-        if numWindows is None:
-            # Make a coordinate-based window selection
-            windows = windower.MakeSteppedSpan(df[x],stepsize=subwindowWidth)
-            bycoordinates=True
-        else:
-            # Make a data-point based, index window selection
-            splits, ranges = windower.SplitFile(df,numWindows,x=x)
-            # Make another window?
-            bycoordinates=False
+        try:
+            if numWindows is None:
+                # Make a coordinate-based window selection
+                windows = windower.MakeSteppedSpan(df[x],stepsize=subwindowWidth)
+                bycoordinates=True
+            else:
+                # Make a data-point based, index window selection
+                splits, ranges = windower.SplitFile(df,numWindows,x=x)
+                # Make another window?
+                bycoordinates=False
+        except AssertionError:
+            print(f"Assertion error detected. Meaning df.x.max - df.x.min < stepsize! Skipping!") 
+            print(f"{filename} has xmin: {min(df[x]):0.1E}, xmax: {max(df[x]):0.1E}, range: {max(df[x])-min(df[x]):0.1E}, stepsize: {subwindowWidth:0.1E} (T)")
         
         #
         try:

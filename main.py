@@ -4,7 +4,7 @@ import pylab as pl
 import ASCII_GUI as gui
 import matplotlib.pyplot as plt
 import matplotlib,multiprocessing,os
-import peak_elector, utilities, windower, record_handler
+import peak_elector, utilities, windower, record_handler, ABO, hall
 from scipy.optimize import curve_fit as fit
 pd.options.mode.chained_assignment = None 
 from io import StringIO
@@ -46,16 +46,101 @@ pl.rcParams['ytick.direction']  = 'in'
 fig_size_x, fig_size_y=8,8
 
 class MeasurementAnalyzer():
-	def __init__(self,meas_rec=None, dat_name_template='tristan_ringsgate-{NUM}.dat', record=None):
+	def __init__(self,meas_rec=None, dat_name_template='tristan_ringsgate-{0}.dat', record=None,x="P124A (V)", y="B Field (T)"):
 		self.electRecord(record)
 		self.displayTypes()
 		print(f"Unique Measurment types in: {self.record_path}: "+', '.join(self.mtypes))
 		gui.Announcement("Measurement Breakdown")
 		print(self.typesdf)
 		self.dat_name_template=dat_name_template
+		self.map = {}
 		self.mainloop()
+		self.x=x
+		self.y=y
 
-	def mainloop()
+	def mainloop(self):
+		d = {
+		     "ABO":["Aharonov-Bohm data",self.aboTreatment],
+		     "Hall":["Hall Data",self.hallTreatment],
+		     "QHall":["Quantum Hall",self.quantumHallTreatment],
+		     "ABO Plot":["Plot Aharonov-Bohm data",self.aboPlot],
+		     "QHall Plot":["Plot Quantum Hall",self.quantumHallPlot]
+		    }
+		while True:
+			gui.Announcement("Make a selection")
+			f = d[gui.dict_selector(d)][1]
+			f()
+	
+	def triageTypes(self,caller):
+		# Get the user to map a measurement type to a style of 
+		d = dict(zip([i for i in range(len(self.mtypes))],self.mtypes))
+		gui.Announcement("Which Measurement Type Will you Analyze?")
+		self.triage = gui.select_simple(d)
+
+	def aboTreatment(self):
+		r = self._treatmentPreamble("ABO")
+		ms = r["Measurement"].values.tolist()
+		to_analyze = gui.complex_selector(dict(zip(ms,ms)))
+		printable = [str(i) for i in to_analyze]
+		print("You will now be analyzing Measurements: "+", ".join(printable))
+		f = [self.numToFilename(i) for i in to_analyze]
+		cf = {f[i]:r[r["Measurement"]==v]["Correction"].values.tolist()[0]\
+			 for i,v in enumerate(to_analyze)}
+		print(cf)
+		windowwidth = self.getABOWidth()
+		ABO.ABOMain(f,cf,subwindowWidth=windowwidth)
+	
+	def getABOWidth(self):
+		print("Input window-width in Tesla")
+		suffixs = ["T", "mT", "uT", 'G', "mG"]
+		scale = [1,10**-3, 10**-6, 10**-4, 10**-7]
+		w = input("Enter window-width Ex: {NUM} {T, mT, uT, G, mG}: ")
+		wlisted = w.split(' ')
+		if len(wlisted) == 1:
+			return wlisted[0]
+		elif len(wlisted) == 2:
+			num, suffix = wlisted
+		else:
+			print("Improper input.")
+			return self.getABOWidth()
+		num = float(num)
+		for i,s in enumerate(suffixs):
+			if s.lower() == suffix.lower():
+				return num*scale[i]
+
+	def numToFilename(self,num):
+		return self.dat_name_template.format(num)
+		
+	def aboPlot(self):		
+		pass
+	
+	def quantumHallPlot(self):
+		pass
+	
+	def _treatmentPreamble(self,name):
+		self.triageTypes(name)
+		self.map[name] = self.triage
+		r = self.record.record
+		r = r[r['Type'] == self.triage]
+		return r
+		
+	def hallTreatment(self):
+		r = self._treatmentPreamble("Hall")
+		ms = r["Measurement"].values.tolist()
+		to_analyze = gui.complex_selector(dict(zip(ms,ms)))
+		f = [self.numToFilename(i) for i in to_analyze]
+		I = r["I_ac"]
+		for i,v in enumerate(f):
+			n = to_analyze[i]
+			print("Analyzing", v)
+			print(r[r["Measurement"]==n])
+			hall.hall(v, r[r["Measurement"]==n]["I_ac"].values.tolist()[0],selx=True)
+		
+		pass
+
+	def quantumHallTreatment(self):
+		self.triageTypes("QHall")
+		pass
 	
 	def electRecord(self, record=None):
 		# asciigui interface: allow user to select measurement record.
@@ -79,7 +164,9 @@ class MeasurementAnalyzer():
 		r = self.record.record
 		tempdf = pd.DataFrame()
 		for t in self.mtypes:
-			tempdf = pd.concat([tempdf, pd.DataFrame({t:r[r["Type"]==t][m].values.tolist()})],ignore_index=True,axis=1)
+			tempdf = pd.concat([tempdf, \
+				pd.DataFrame({t:r[r["Type"]==t][m].values.tolist()})]\
+				,ignore_index=True,axis=1)
 		c = tempdf.columns.to_list()
 		self.typesdf = tempdf.rename(columns=dict(zip(c,self.mtypes)))
 
