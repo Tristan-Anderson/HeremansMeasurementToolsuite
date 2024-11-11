@@ -117,6 +117,7 @@ class MeasurementAnalyzer():
 	
 	def quantumHallPlot(self):
 		pass
+	
 	def _treatmentPreamble(self,name):
 		self.triageTypes(name)
 		self.map[name] = self.triage
@@ -134,12 +135,20 @@ class MeasurementAnalyzer():
 			n = int(to_analyze[i])
 			hall.hall(v, r[r["Measurement"]==n]["I_ac"].values.tolist()[0],selx=True)
 		
-
 	def quantumHallTreatment(self):
 		e = 1.60217663*10**-19
 		h = 6.62607015*10**-34
 		Rk = h/(e**2)
 		RName = "Klitzing Resistance"
+		r = self._treatmentPreamble("QHall")
+		ms = r["Measurement"].values.tolist()
+		to_analyze = gui.complex_selector(dict(zip(ms,ms)))
+		f = [self.numToFilename(i) for i in to_analyze]
+		for i,fn in enumerate(f):
+			n = int(to_analyze[i])
+			quantum_hall.quantum_hall(fn, r, n, x=self.x, y=self.y)
+
+	def quantumHallTreatment1(self):
 		r = self._treatmentPreamble("QHall")
 		ms = r["Measurement"].values.tolist()
 		to_analyze = gui.complex_selector(dict(zip(ms,ms)))
@@ -162,13 +171,11 @@ class MeasurementAnalyzer():
 				fig,ax = plt.subplots(2)
 				for x in dpts:
 					ax[0].axvline(x=x, color='red', linestyle='--')
-				
-				
-					
-				
-				
-			
-			
+			cols = [i for i in range(len(dpts))]
+			results = {i:dpts[i] for i in cols}
+			rdf = pd.DataFrame(results)
+			with open("QH_Record_"+fn.split('.dat')[0]+'.csv','w') as recordfile:
+				rdf.to_csv(recordfile)	
 		
 		pass
 	
