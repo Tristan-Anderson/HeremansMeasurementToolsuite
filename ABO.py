@@ -197,7 +197,7 @@ def ABOPeakElector(filename,		# String
             #record = pandas.concat([record,peak_elector.ElectPeaks(cut,\
 			#f'{filename} cut {identifier}')], ignore_index=True, axis=1)
     except KeyboardInterrupt:
-        with open("Record"+"".join(filename.split('.dat'))+".csv", 'w') as f:
+        with open("ABO_Record"+"".join(filename.split('.dat'))+".csv", 'w') as f:
             record.to_csv(f)
         raise KeyboardInterrupt("Interrupt recieved.")
     return record
@@ -245,11 +245,12 @@ def ABOMain(filenames:list, s,**kwargs):
         try:
             record = ABOPeakElector(filename,df, windows,record,bycoordinates)
         except KeyboardInterrupt:
-            with open("Record"+"".join(filename.split('.dat'))+".csv", 'w') as f:
+            with open("ABO_Record"+"".join(filename.split('.dat'))+".csv", 'w') as f:
                 record.to_csv(f)
             raise KeyboardInterrupt()
         finally:
-            with open("Record"+"".join(filename.split('.dat'))+".csv", 'w') as f:
+            with open("ABO_Record"+"".join(filename.split('.dat'))+".csv", 'w') as f:
+
                 record.to_csv(f)
 
     return record

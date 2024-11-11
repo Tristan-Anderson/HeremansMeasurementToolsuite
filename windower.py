@@ -8,51 +8,51 @@ def selectWindower(df,x,y, clickpoints=False, fig=None, ax=None):
     b=""
     cpts = []
     ifg, iax = fig, ax
-    while b !='y':
-        # Untill the user is satisfied, allow them to select
-        #       Data that they need.
-        if fig is None:
-            plt.close('all')
-            fig,ax = plt.subplots(1)
-            ax.plot(df[x], df[y], label="Data")
-            ax.grid(True)
-            plt.legend(loc='best', frameon=False)
-            coords = plt.ginput(2,timeout=0)
-            if len(coords) == 0:
-                return []
-            xax = [c[0] for c in coords]
-            cut = df[(df[x]<max(xax)) & (df[x]>min(xax))]
-            other = df[~(df[x]<max(xax)) | ~(df[x]>min(xax))]
-            plt.close('all')
-            fig,ax = plt.subplots(2)
-            ax[0].scatter(other[x], other[y],color='blue')
-            ax[0].scatter(cut[x], cut[y],color='red')
-            ax[1].scatter(cut[x], cut[y],color='red')
-            for i in ax:
-                i.grid(True)
-                i.set_xlabel(x)
-                i.set_ylabel(y)
-        else:
-            ax[0].scatter(df[x], df[y],color='blue')
-            coords = plt.ginput(2,timeout=0)
-            if len(coords) == 0:
-                return []
-            plt.close('all')
-            fig,ax = plt.subplots(2)
-            xax = [c[0] for c in coords]
-            cut = df[(df[x]<max(xax)) & (df[x]>min(xax))]
-            other = df[~(df[x]<max(xax)) | ~(df[x]>min(xax))]
-            ax[0].scatter(other[x], other[y],color='blue')
-            ax[0].scatter(cut[x], cut[y],color='red')
-            ax[1].scatter(cut[x], cut[y],color='red')
-        plt.show()
+    # Untill the user is satisfied, allow them to select
+    #       Data that they need.
+    if fig is None:
         plt.close('all')
-        print("Window Width: ",max(xax)-min(xax))
-        b = input("Ok? (y/n): ")
-        if ifg is None:
-            fig, ax = None, None
-        if b=='n':
-            fig,ax = ifg,iax
+        fig,ax = plt.subplots(1)
+        ax.plot(df[x], df[y], label="Data")
+        ax.grid(True)
+        plt.legend(loc='best', frameon=False)
+    else:
+        plt.close('all')
+        ax[0].scatter(df[x], df[y],color='blue')
+        ax[1].scatter(df[x], df[y],color='blue')
+    coords = plt.ginput(2,timeout=0)
+    if len(coords) == 0:
+        return []
+    xax = [c[0] for c in coords]
+    cut = df[(df[x]<max(xax)) & (df[x]>min(xax))]
+    other = df[~(df[x]<max(xax)) | ~(df[x]>min(xax))]
+    plt.close('all')
+    fig,ax = plt.subplots(2)
+    ax[0].scatter(other[x], other[y],color='blue')
+    ax[0].scatter(cut[x], cut[y],color='red')
+    ax[1].scatter(cut[x], cut[y],color='red')
+    for i in ax:
+        i.grid(True)
+        i.set_xlabel(x)
+        i.set_ylabel(y+" (1/v)")
+    while True:
+        c2 = plt.ginput(2,timeout=0)
+        if len(c2) == 0:
+            return []
+        else:
+            plt.close('all')
+            fig,ax = plt.subplots(2)
+            xax = [c[0] for c in c2]
+            cut = df[(df[x]<max(xax)) & (df[x]>min(xax))]
+            other = df[~(df[x]<max(xax)) | ~(df[x]>min(xax))]
+            ax[0].scatter(other[x], other[y],color='blue')
+            ax[0].scatter(cut[x], cut[y],color='red')
+            ax[1].scatter(cut[x], cut[y],color='red')
+        for i in ax:
+            i.grid(True)
+            i.set_xlabel(x)
+            i.set_ylabel(y+" (1/v)")
+            
     if clickpoints:
         return xax
     else:

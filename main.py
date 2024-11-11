@@ -14,7 +14,7 @@ from multiprocessing import Pool
 #matplotlib.rc('font', **font)
 #plt.rcParams.update({
         #"text.usetex": True})
-pl.rcParams['figure.figsize']  = 8.5*.75, 11*.75
+pl.rcParams['figure.figsize']  = 8.5, 11*.75
 pl.rcParams['lines.linewidth'] = 1.5
 pl.rcParams['font.family']     = 'serif'
 pl.rcParams['font.weight']     = 'normal'
