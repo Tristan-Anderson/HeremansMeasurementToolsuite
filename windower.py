@@ -1,37 +1,59 @@
 import numpy as np
 import sys
 import pandas as pd
+from matplotlib import pyplot as plt
 from utilities import FunctionInputHandler
 
-def USelectWindow(df,x,y):
+def selectWindower(df,x,y, clickpoints=False, fig=None, ax=None):
     b=""
+    cpts = []
+    ifg, iax = fig, ax
     while b !='y':
         # Untill the user is satisfied, allow them to select
         #       Data that they need.
-        plt.close('all')
-        plt.plot(df[x], df[y], label="Data")
-        plt.grid(True)
-        plt.legend(loc='best', frameon=False)
-
-        coords = plt.ginput(2)
-        xax = [c[0] for c in coords]
-        cut = df[(df[x]<max(xax)) & (df[x]>min(xax))]
-        #other = df[df[B]>max(xax)]
-        #other = pandas.concat([other, df[df[B]<min(xax)]])
-        other = df[~(df[x]<max(xax)) & ~(df[x]>min(xax))]
-        print(other)
-        plt.close('all')
-        fig,ax = plt.subplots(2)
-        ax[0].scatter(other[B], other[y])
-        ax[1].scatter(cut[x], cut[y])
-        for i in ax:
-            i.grid(True)
-            i.legend(loc='best',frameon=True)
+        if fig is None:
+            plt.close('all')
+            fig,ax = plt.subplots(1)
+            ax.plot(df[x], df[y], label="Data")
+            ax.grid(True)
+            plt.legend(loc='best', frameon=False)
+            coords = plt.ginput(2,timeout=0)
+            if len(coords) == 0:
+                break
+            xax = [c[0] for c in coords]
+            cut = df[(df[x]<max(xax)) & (df[x]>min(xax))]
+            other = df[~(df[x]<max(xax)) | ~(df[x]>min(xax))]
+            plt.close('all')
+            fig,ax = plt.subplots(2)
+            ax[0].scatter(other[x], other[y],color='blue')
+            ax[0].scatter(cut[x], cut[y],color='red')
+            ax[1].scatter(cut[x], cut[y],color='red')
+            for i in ax:
+                i.grid(True)
+                i.set_xlabel(x)
+                i.set_ylabel(y)
+        else:
+            ax[0].scatter(df[x], df[y],color='blue')
+            coords = plt.ginput(2,timeout=0)
+            if len(coords) == 0:
+                break
+            plt.close('all')
+            xax = [c[0] for c in coords]
+            cut = df[(df[x]<max(xax)) & (df[x]>min(xax))]
+            other = df[~(df[x]<max(xax)) | ~(df[x]>min(xax))]
+            ax[0].scatter(other[x], other[y],color='blue')
+            ax[0].scatter(cut[x], cut[y],color='red')
+            ax[1].scatter(cut[x], cut[y],color='red')
         plt.show()
         plt.close('all')
         print("Window Width: ",max(xax)-min(xax))
         b = input("Ok? (y/n): ")
-    return cut
+        if ifg is None:
+            fig, ax = None, None
+    if clickpoints:
+        return xax
+    else:
+        return cut
 
 def MakeSteppedSpan(iterable, **kwargs):
     """

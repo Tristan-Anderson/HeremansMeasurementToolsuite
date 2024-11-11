@@ -4,7 +4,7 @@ import pylab as pl
 import ASCII_GUI as gui
 import matplotlib.pyplot as plt
 import matplotlib,multiprocessing,os
-import peak_elector, utilities, windower, record_handler, ABO, hall
+import peak_elector, utilities, windower, record_handler, ABO, hall, quantum_hall
 from scipy.optimize import curve_fit as fit
 pd.options.mode.chained_assignment = None 
 from io import StringIO
@@ -14,7 +14,7 @@ from multiprocessing import Pool
 #matplotlib.rc('font', **font)
 #plt.rcParams.update({
         #"text.usetex": True})
-pl.rcParams['figure.figsize']  = 8.5, 11
+pl.rcParams['figure.figsize']  = 8.5*.75, 11*.75
 pl.rcParams['lines.linewidth'] = 1.5
 pl.rcParams['font.family']     = 'serif'
 pl.rcParams['font.weight']     = 'normal'
@@ -43,10 +43,9 @@ pl.rcParams['ytick.labelsize']  = 'medium'
 pl.rcParams['ytick.direction']  = 'in'
 
 
-fig_size_x, fig_size_y=8,8
 
 class MeasurementAnalyzer():
-	def __init__(self,meas_rec=None, dat_name_template='tristan_ringsgate-{0}.dat', record=None,x="P124A (V)", y="B Field (T)"):
+	def __init__(self,meas_rec=None, dat_name_template='tristan_ringsgate-{0}.dat', record=None,y="P124A (V)", x="B Field (T)"):
 		self.electRecord(record)
 		self.displayTypes()
 		print(f"Unique Measurment types in: {self.record_path}: "+', '.join(self.mtypes))
@@ -54,9 +53,11 @@ class MeasurementAnalyzer():
 		print(self.typesdf)
 		self.dat_name_template=dat_name_template
 		self.map = {}
-		self.mainloop()
 		self.x=x
 		self.y=y
+		
+
+		self.mainloop()
 
 	def mainloop(self):
 		d = {
@@ -116,7 +117,6 @@ class MeasurementAnalyzer():
 	
 	def quantumHallPlot(self):
 		pass
-	
 	def _treatmentPreamble(self,name):
 		self.triageTypes(name)
 		self.map[name] = self.triage
@@ -131,15 +131,46 @@ class MeasurementAnalyzer():
 		f = [self.numToFilename(i) for i in to_analyze]
 		I = r["I_ac"]
 		for i,v in enumerate(f):
-			n = to_analyze[i]
-			print("Analyzing", v)
-			print(r[r["Measurement"]==n])
+			n = int(to_analyze[i])
 			hall.hall(v, r[r["Measurement"]==n]["I_ac"].values.tolist()[0],selx=True)
 		
-		pass
 
 	def quantumHallTreatment(self):
-		self.triageTypes("QHall")
+		e = 1.60217663*10**-19
+		h = 6.62607015*10**-34
+		Rk = h/(e**2)
+		RName = "Klitzing Resistance"
+		r = self._treatmentPreamble("QHall")
+		ms = r["Measurement"].values.tolist()
+		to_analyze = gui.complex_selector(dict(zip(ms,ms)))
+		f = [self.numToFilename(i) for i in to_analyze]
+		for i,fn in enumerate(f):
+			n = int(to_analyze[i])
+			m = r[r["Measurement"]==n]
+			I = m["I_ac"].values.tolist()[0]
+			c = m["Correction"].values.tolist()[0]
+			df = utilities.ReadDatFile(fn, correction=c, y=self.y)
+			df[RName] = (df[self.y].values/I)/Rk
+			dpts = []
+			print(type(df))
+			addition = [None,None]
+			fig,ax = None,None
+			while len(addition) ==2:
+				addition = windower.selectWindower(df,self.x,\
+						self.y,clickpoints=True, fig=fig,\
+						ax=ax)
+				dpts += addition
+				fig,ax = plt.subplots(2)
+				for x in dpts:
+					ax[0].axvline(x=x, color='red', linestyle='--')
+				
+				
+					
+				
+				
+			
+			
+		
 		pass
 	
 	def electRecord(self, record=None):

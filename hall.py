@@ -101,7 +101,6 @@ def hall(df, I, x='B Field (T)', y='P124A (V)', selx=False, f=None):
 	plt.close('all')
 
 
-print(__name__)
 if __name__ == '__main__':
 	f = [f'tristan_ringsgate-{i}.dat' for i in [8,11,14,17,18]]
 	for i in f:
