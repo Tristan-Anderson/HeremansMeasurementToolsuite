@@ -152,7 +152,6 @@ class MeasurementAnalyzer():
 			df = utilities.ReadDatFile(fn, correction=c, y=self.y)
 			df[RName] = (df[self.y].values/I)/Rk
 			dpts = []
-			print(type(df))
 			addition = [None,None]
 			fig,ax = None,None
 			while len(addition) ==2:

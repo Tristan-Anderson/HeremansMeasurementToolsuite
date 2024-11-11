@@ -19,7 +19,7 @@ def selectWindower(df,x,y, clickpoints=False, fig=None, ax=None):
             plt.legend(loc='best', frameon=False)
             coords = plt.ginput(2,timeout=0)
             if len(coords) == 0:
-                break
+                return []
             xax = [c[0] for c in coords]
             cut = df[(df[x]<max(xax)) & (df[x]>min(xax))]
             other = df[~(df[x]<max(xax)) | ~(df[x]>min(xax))]
@@ -36,8 +36,9 @@ def selectWindower(df,x,y, clickpoints=False, fig=None, ax=None):
             ax[0].scatter(df[x], df[y],color='blue')
             coords = plt.ginput(2,timeout=0)
             if len(coords) == 0:
-                break
+                return []
             plt.close('all')
+            fig,ax = plt.subplots(2)
             xax = [c[0] for c in coords]
             cut = df[(df[x]<max(xax)) & (df[x]>min(xax))]
             other = df[~(df[x]<max(xax)) | ~(df[x]>min(xax))]
@@ -50,6 +51,8 @@ def selectWindower(df,x,y, clickpoints=False, fig=None, ax=None):
         b = input("Ok? (y/n): ")
         if ifg is None:
             fig, ax = None, None
+        if b=='n':
+            fig,ax = ifg,iax
     if clickpoints:
         return xax
     else:
