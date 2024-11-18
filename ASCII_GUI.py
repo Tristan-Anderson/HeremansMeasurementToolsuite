@@ -21,7 +21,11 @@ def complex_selector(d):
 			elif "*" in c:
 				return list(d.keys())+res
 			else:
-				d.pop(int(c))
+				try:
+					d.pop(int(c))
+				except KeyError:
+					print("Invalid input. Try again.")
+					continue
 				res.append(c)
 	return res
 			

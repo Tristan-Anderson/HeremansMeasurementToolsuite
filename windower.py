@@ -4,12 +4,13 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from utilities import FunctionInputHandler
 
-def selectWindower(df,x,y, clickpoints=False, fig=None, ax=None):
+def selectWindower(df,x,y, clickpoints=False, fig=None, ax=None,filename=''):
     b=""
     cpts = []
     ifg, iax = fig, ax
     # Untill the user is satisfied, allow them to select
     #       Data that they need.
+    cont = 0
     if fig is None:
         plt.close('all')
         fig,ax = plt.subplots(1)
@@ -22,6 +23,8 @@ def selectWindower(df,x,y, clickpoints=False, fig=None, ax=None):
         ax[1].scatter(df[x], df[y],color='blue')
     coords = plt.ginput(2,timeout=0)
     if len(coords) == 0:
+        plt.savefig(f'QH_{filename.split('.dat')[0]}-{cont}')
+        print("windower: made it into break condition in first loop.")
         return []
     xax = [c[0] for c in coords]
     cut = df[(df[x]<max(xax)) & (df[x]>min(xax))]
@@ -38,11 +41,14 @@ def selectWindower(df,x,y, clickpoints=False, fig=None, ax=None):
     while True:
         c2 = plt.ginput(2,timeout=0)
         if len(c2) == 0:
-            return []
+            print("windower: made it into break condition in second loop.")
+            plt.savefig(f'QH_{filename.split('.dat')[0]}-{cont}')
+            return xax
         else:
             plt.close('all')
             fig,ax = plt.subplots(2)
             xax = [c[0] for c in c2]
+            xax = sorted(xax)
             cut = df[(df[x]<max(xax)) & (df[x]>min(xax))]
             other = df[~(df[x]<max(xax)) | ~(df[x]>min(xax))]
             ax[0].scatter(other[x], other[y],color='blue')
@@ -52,6 +58,8 @@ def selectWindower(df,x,y, clickpoints=False, fig=None, ax=None):
             i.grid(True)
             i.set_xlabel(x)
             i.set_ylabel(y+" (1/v)")
+        cont+=1
+        plt.savefig(f'QH_{filename.split('.dat')[0]}-{cont}')
             
     if clickpoints:
         return xax

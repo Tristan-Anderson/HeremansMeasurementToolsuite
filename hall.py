@@ -4,33 +4,6 @@ import pylab as pl
 from matplotlib import pyplot as plt
 from scipy.optimize import curve_fit as fit
 from utilities import FunctionInputHandler
-pl.rcParams['figure.figsize']  = 8.5, 11
-pl.rcParams['lines.linewidth'] = 1.5
-pl.rcParams['font.family']     = 'serif'
-pl.rcParams['font.weight']     = 'normal'
-pl.rcParams['font.size']       = 12
-
-pl.rcParams['font.sans-serif'] = 'serif'
-pl.rcParams['text.usetex']     = False
-pl.rcParams['axes.linewidth']  = 1.5
-pl.rcParams['axes.titlesize']  = 'medium'
-pl.rcParams['axes.labelsize']  = 'medium'
-
-pl.rcParams['xtick.major.size'] = 8
-pl.rcParams['xtick.minor.size'] = 4
-pl.rcParams['xtick.major.pad']  = 8
-pl.rcParams['xtick.minor.pad']  = 8
-pl.rcParams['xtick.color']      = 'k'
-pl.rcParams['xtick.labelsize']  = 'medium'
-pl.rcParams['xtick.direction']  = 'in'
-
-pl.rcParams['ytick.major.size'] = 8
-pl.rcParams['ytick.minor.size'] = 4
-pl.rcParams['ytick.major.pad']  = 8
-pl.rcParams['ytick.minor.pad']  = 8
-pl.rcParams['ytick.color']      = 'k'
-pl.rcParams['ytick.labelsize']  = 'medium'
-pl.rcParams['ytick.direction']  = 'in'
 def line(m,x,b):
 	return m*x+b
 
@@ -44,6 +17,8 @@ def hall(df, I, x='B Field (T)', y='P124A (V)', selx=False, f=None):
 	df,f = FunctionInputHandler(df,f=f)
 	
 	# Default to fitting/plotting everything.
+	#res = "Resistance (Ohm)"
+	#df[res] = df[y].values / I
 	datax = df[x]
 	datay = df[y]
 	xd = df[x].values
@@ -88,10 +63,15 @@ def hall(df, I, x='B Field (T)', y='P124A (V)', selx=False, f=None):
 	plt.scatter(datax,datay, color='black', label='dataset', s=3)
 	plt.scatter(xd,yd, color='blue', label='data for hall fit', s=3)
 	plt.plot(xfit, yfit, color='red', label='fit')
+	ytot = list(yd)+list(yfit)
+	xtot = list(xfit)+list(xd)
 	
 	# Calculate density assuming e
 	Ns = I/(-1.602*10**(-19) *pvar[0])
 	print(f'{f} e- density: {Ns:0.4E}')
+	plt.text(min(xtot), min(ytot), r"N_s: " f"{Ns:0.3E}"+ r"$\frac{1}{m^2}$")
+	plt.xlabel(x)
+	plt.ylabel(y)
 	
 	# Titling.
 	plt.title(f)

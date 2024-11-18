@@ -4,7 +4,7 @@ import pylab as pl
 import ASCII_GUI as gui
 import matplotlib.pyplot as plt
 import matplotlib,multiprocessing,os
-import peak_elector, utilities, windower, record_handler, ABO, hall, quantum_hall
+import peak_elector, utilities, windower, record_handler, ABO, hall, quantum_hall, quick_view
 from scipy.optimize import curve_fit as fit
 pd.options.mode.chained_assignment = None 
 from io import StringIO
@@ -14,8 +14,9 @@ from multiprocessing import Pool
 #matplotlib.rc('font', **font)
 #plt.rcParams.update({
         #"text.usetex": True})
-pl.rcParams['figure.figsize']  = 8.5, 11*.75
+pl.rcParams['figure.figsize']  = 5, 11*.75
 pl.rcParams['lines.linewidth'] = 1.5
+pl.rcParams["figure.autolayout"] = True
 pl.rcParams['font.family']     = 'serif'
 pl.rcParams['font.weight']     = 'normal'
 pl.rcParams['font.size']       = 12
@@ -31,7 +32,7 @@ pl.rcParams['xtick.minor.size'] = 4
 pl.rcParams['xtick.major.pad']  = 8
 pl.rcParams['xtick.minor.pad']  = 8
 pl.rcParams['xtick.color']      = 'k'
-pl.rcParams['xtick.labelsize']  = 'medium'
+pl.rcParams['xtick.labelsize']  = 'small'
 pl.rcParams['xtick.direction']  = 'in'
 
 pl.rcParams['ytick.major.size'] = 8
@@ -61,16 +62,26 @@ class MeasurementAnalyzer():
 
 	def mainloop(self):
 		d = {
+		     "Quick View":["Quick View",self.quickView],
 		     "ABO":["Aharonov-Bohm data",self.aboTreatment],
 		     "Hall":["Hall Data",self.hallTreatment],
 		     "QHall":["Quantum Hall",self.quantumHallTreatment],
-		     "ABO Plot":["Plot Aharonov-Bohm data",self.aboPlot],
-		     "QHall Plot":["Plot Quantum Hall",self.quantumHallPlot]
+		     "QHall Density":["Quantum Hall Density",self.quantumHallDensityTreatment]
 		    }
 		while True:
 			gui.Announcement("Make a selection")
 			f = d[gui.dict_selector(d)][1]
 			f()
+
+	def quickView(self):
+		r = self._treatmentPreamble("QV")
+		ms = r["Measurement"].values.tolist()
+		to_analyze = gui.complex_selector(dict(zip(ms,ms)))
+		printable = [str(i) for i in to_analyze]
+		print("You will now be viewing Measurements: "+", ".join(printable))
+		f = [self.numToFilename(i) for i in to_analyze]
+		for fn in f:
+			quick_view.view(fn,x=self.x,y=self.y)
 	
 	def triageTypes(self,caller):
 		# Get the user to map a measurement type to a style of 
@@ -85,7 +96,7 @@ class MeasurementAnalyzer():
 		printable = [str(i) for i in to_analyze]
 		print("You will now be analyzing Measurements: "+", ".join(printable))
 		f = [self.numToFilename(i) for i in to_analyze]
-		cf = {f[i]:r[r["Measurement"]==v]["Correction"].values.tolist()[0]\
+		cf = {f[i]:r[r["Measurement"]==int(v)]["Correction"].values.tolist()[0]\
 			 for i,v in enumerate(to_analyze)}
 		print(cf)
 		windowwidth = self.getABOWidth()
@@ -134,6 +145,23 @@ class MeasurementAnalyzer():
 		for i,v in enumerate(f):
 			n = int(to_analyze[i])
 			hall.hall(v, r[r["Measurement"]==n]["I_ac"].values.tolist()[0],selx=True)
+	
+	def quantumHallDensityTreatment(self):
+		e = 1.60217663*10**-19
+		h = 6.62607015*10**-34
+		Rk = h/(e**2)
+		RName = "Klitzing Resistance"
+		r = self._treatmentPreamble("QHall")
+		ms = r["Measurement"].values.tolist()
+		to_analyze = gui.complex_selector(dict(zip(ms,ms)))
+		f = [self.numToFilename(i) for i in to_analyze]
+		for i,fn in enumerate(f):
+			n = int(to_analyze[i])
+			quantum_hall.quantum_hall_density(fn, r, n, x=self.x, y=self.y)
+			
+				
+
+			
 		
 	def quantumHallTreatment(self):
 		e = 1.60217663*10**-19
@@ -146,7 +174,7 @@ class MeasurementAnalyzer():
 		f = [self.numToFilename(i) for i in to_analyze]
 		for i,fn in enumerate(f):
 			n = int(to_analyze[i])
-			quantum_hall.quantum_hall(fn, r, n, x=self.x, y=self.y)
+			quantum_hall.quantum_hall_density(fn, r, n, x=self.x, y=self.y)
 
 	def quantumHallTreatment1(self):
 		r = self._treatmentPreamble("QHall")

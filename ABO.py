@@ -14,36 +14,7 @@ import utilities, windower
 #matplotlib.rc('font', **font)
 #plt.rcParams.update({
         #"text.usetex": True})
-pl.rcParams['figure.figsize']  = 8.5, 11
-pl.rcParams['lines.linewidth'] = 1.5
-pl.rcParams['font.family']     = 'serif'
-pl.rcParams['font.weight']     = 'normal'
-pl.rcParams['font.size']       = 12
-
-pl.rcParams['font.sans-serif'] = 'serif'
-pl.rcParams['text.usetex']     = False
-pl.rcParams['axes.linewidth']  = 1.5
-pl.rcParams['axes.titlesize']  = 'medium'
-pl.rcParams['axes.labelsize']  = 'medium'
-
-pl.rcParams['xtick.major.size'] = 8
-pl.rcParams['xtick.minor.size'] = 4
-pl.rcParams['xtick.major.pad']  = 8
-pl.rcParams['xtick.minor.pad']  = 8
-pl.rcParams['xtick.color']      = 'k'
-pl.rcParams['xtick.labelsize']  = 'medium'
-pl.rcParams['xtick.direction']  = 'in'
-
-pl.rcParams['ytick.major.size'] = 8
-pl.rcParams['ytick.minor.size'] = 4
-pl.rcParams['ytick.major.pad']  = 8
-pl.rcParams['ytick.minor.pad']  = 8
-pl.rcParams['ytick.color']      = 'k'
-pl.rcParams['ytick.labelsize']  = 'medium'
-pl.rcParams['ytick.direction']  = 'in'
-
-
-fig_size_x, fig_size_y=8,8
+fig_size_x, fig_size_y = 5, 8
 def Linear(x,m,b):
     return m*x+b
 def SecondOrder(x,a,b,c):
@@ -141,15 +112,15 @@ def GFF(df, function, **kwargs):
     if not automated:
 
         fig, ax = plt.subplots(3,figsize=(fig_size_x, fig_size_y))
-        plt.title(filename)
-
+        #plt.title(filename)
+        ax[0].set_title(filename)
         ax[0].scatter(ogdf[x],ogdf[y],label='data',color='blue')
         ax[0].scatter(df[x],df[y],label='current selection',color='red')
 
         ax[1].plot(df[x],df[fitname],label='fit',color="red")
-        ax[1].scatter(df[x],df[y],label='data',color='blue')
+        ax[1].plot(df[x],df[y],label='data',color='blue')
 
-        ax[2].scatter(df[x],df[fitsub],label='fit subtraction',color="black")
+        ax[2].plot(df[x],df[fitsub],label='fit subtraction',color="black")
 
         for i in ax:
             i.grid(True)
