@@ -4,7 +4,7 @@ import pylab as pl
 import ASCII_GUI as gui
 import matplotlib.pyplot as plt
 import matplotlib,multiprocessing,os
-import peak_elector, utilities, windower, record_handler, ABO, hall, quantum_hall, quick_view
+import peak_elector, utilities, windower, record_handler, ABO, hall, quantum_hall, quick_view, conductance_evaluator
 from scipy.optimize import curve_fit as fit
 pd.options.mode.chained_assignment = None 
 from io import StringIO
@@ -63,6 +63,7 @@ class MeasurementAnalyzer():
 	def mainloop(self):
 		d = {
 		     "Quick View":["Quick View",self.quickView],
+		     "UCFs":["Conductance Fluctuations",self.UCFs],
 		     "ABO":["Aharonov-Bohm data",self.aboTreatment],
 		     "Hall":["Hall Data",self.hallTreatment],
 		     "QHall":["Quantum Hall",self.quantumHallTreatment],
@@ -72,6 +73,20 @@ class MeasurementAnalyzer():
 			gui.Announcement("Make a selection")
 			f = d[gui.dict_selector(d)][1]
 			f()
+	def UCFs(self):
+		r = self._treatmentPreamble("ABO")
+		ms = r["Measurement"].values.tolist()
+		to_analyze = gui.complex_selector(dict(zip(ms,ms)))
+		printable = [str(i) for i in to_analyze]
+		print("You will now be analyzing Measurements: "+", ".join(printable))
+		f = [self.numToFilename(i) for i in to_analyze]
+		cf = {f[i]:r[r["Measurement"]==int(v)]["Correction"].values.tolist()[0]\
+			 for i,v in enumerate(to_analyze)}
+		currents = {f[i]:r[r["Measurement"]==int(v)]["I_ac"].values.tolist()[0]\
+			 for i,v in enumerate(to_analyze)}
+		print(cf)
+		print(currents)
+		conductance_evaluator.ConductanceParity(f,currents)
 
 	def quickView(self):
 		r = self._treatmentPreamble("QV")
@@ -158,11 +173,6 @@ class MeasurementAnalyzer():
 		for i,fn in enumerate(f):
 			n = int(to_analyze[i])
 			quantum_hall.quantum_hall_density(fn, r, n, x=self.x, y=self.y)
-			
-				
-
-			
-		
 	def quantumHallTreatment(self):
 		e = 1.60217663*10**-19
 		h = 6.62607015*10**-34

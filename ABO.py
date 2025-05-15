@@ -139,7 +139,7 @@ def ABOPeakElector(filename,		# String
                   x='B Field (T)',
                   y="P124A (V)",
                   selectregion=True
-                  ):
+                 ):
     # Function Start
     try:
         for idx, w in enumerate(windows):
@@ -154,7 +154,7 @@ def ABOPeakElector(filename,		# String
             if len(cut) == 0:
                 print(f"Empty df encountered at {filename}, in window {idx} of {len(windows)}, with bounds {w}")
                 continue
-            df_modified, fig = GFF(df, function, filename=f'{filename} cut {identifier}', window=w)
+            df_modified, fig = utilities.GFF(df, function, filename=f'{filename} cut {identifier}', window=w)
             if selectregion:
                 print('\n\nClick the suspected peaks of the oscillation.')
                 print('Press ENTER when all peaks have been denoted')
@@ -180,6 +180,7 @@ def ABOMain(filenames:list, s,**kwargs):
     subwindowWidth=kwargs.get("subwindowWidth",None)
     numWindows=kwargs.get("numWindows",None)
     degenerate=kwargs.get("degenerate",False)
+    prefix=kwargs.get('conductivity','ABO')
     # Make sure we were called correctly
     case1 = (numWindows is not None and subwindowWidth is not None)
     if subwindowWidth is None and numWindows is None:
@@ -190,29 +191,7 @@ def ABOMain(filenames:list, s,**kwargs):
 			 (Did you forget to pass degenerate=True?)")
     # Begin iteration
     for idx,filename in enumerate(filenames):
-        # Search for old files.
-        try:
-             with open(f"ABO_Record{"".join(filename.split('.dat'))}.csv", 'r') as f:
-                record = pandas.read_csv(f,index_col=0)
-        except:
-            record = pandas.DataFrame()
-        # Open actual data file
-        df = utilities.ReadDatFile(filename,correction=s[filename])
-        try:
-            if numWindows is None:
-                # Make a coordinate-based window selection
-                windows = windower.MakeSteppedSpan(df[x],stepsize=subwindowWidth)
-                bycoordinates=True
-            else:
-                # Make a data-point based, index window selection
-                splits, ranges = windower.SplitFile(df,numWindows,x=x)
-                # Make another window?
-                bycoordinates=False
-        except AssertionError:
-            print(f"Assertion error detected. Meaning df.x.max - df.x.min < stepsize! Skipping!") 
-            print(f"{filename} has xmin: {min(df[x]):0.1E}, xmax: {max(df[x]):0.1E}, range: {max(df[x])-min(df[x]):0.1E}, stepsize: {subwindowWidth:0.1E} (T)")
-        
-        #
+        windows,bycoordinates,df,record = utilities.getwindows(filename,s,"ABO",**kwargs)
         try:
             record = ABOPeakElector(filename,df, windows,record,bycoordinates)
         except KeyboardInterrupt:

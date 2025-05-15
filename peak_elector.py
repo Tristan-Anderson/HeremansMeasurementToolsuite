@@ -28,7 +28,7 @@ def ElectPeaks(df, filename, **kwargs):
     return tuples
 
 def ElectABOPeaks(df,window,filename,identifier,**kwargs):
-    analysisdf = pandas.DataFrame()
+    analysisdf = pd.DataFrame()
     y = kwargs.pop('y', "P124A (V)")
     x = kwargs.pop('x', "B Field (T)")
     fpath = kwargs.pop("path","")

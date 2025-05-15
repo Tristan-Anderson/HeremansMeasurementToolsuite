@@ -1,4 +1,6 @@
 import pandas
+import h5py, os
+from pprint import pp
 import pandas as pd
 import numpy as np
 import windower as _windower
@@ -6,7 +8,7 @@ from matplotlib import pyplot as plt
 
 fig_size_x, fig_size_y = 5, 8
 def nearest(iterable, test):
-	pass
+    pass
 
 def Linear(x,m,b):
     return m*x+b
@@ -68,7 +70,7 @@ def GFF(df, function, **kwargs):
     if any(isinstance(i, float) for i in window):
         df = df[(df[x]>window[0]) & (df[x]<window[1])]
     else:
-    	df=df.iloc[window[0]:window[1]]
+        df=df.iloc[window[0]:window[1]]
     cut_data = pandas.DataFrame()
     if selectregion:
         fig, ax = plt.subplots(figsize=(fig_size_x, fig_size_y))
@@ -124,23 +126,22 @@ def GFF(df, function, **kwargs):
     return df, fig
 
 def generateWindowRecord(windows,filename,prefix):
-	d = {}
-	d['window num']=[]
-	d['x1']=[]
-	d['x2']=[]
-	for i,(x1,x2) in enumerate(windows):
-		d['x1'].append(x1)
-		d['x2'].append(x2)
-		d['window num'].append(i)
-	df = pd.DataFrame(d)
-	with open(f"WINDOWS_{prefix}_{"".join(filename.split('.dat'))}.csv",'w') as f:
-		df.to_csv(f,index=False)
+    d = {}
+    d['window num']=[]
+    d['x1']=[]
+    d['x2']=[]
+    for i,(x1,x2) in enumerate(windows):
+        d['x1'].append(x1)
+        d['x2'].append(x2)
+        d['window num'].append(i)
+    df = pd.DataFrame(d)
+    with open(f"WINDOWS_{prefix}_{"".join(filename.split('.dat'))}.csv",'w') as f:
+        df.to_csv(f,index=False)
 
 def readWindows(filename,prefix):
-	with open(f"WINDOWS_{prefix}_{"".join(filename.split('.dat'))}.csv",'r') as f:
-		df= pd.read_csv(f)
-	return df
-		
+    with open(f"WINDOWS_{prefix}_{"".join(filename.split('.dat'))}.csv",'r') as f:
+        df= pd.read_csv(f)
+    return df
 
 def getwindows(filename,s,prefix,**kwargs):
     x=kwargs.get('x',"B Field (T)")
@@ -171,23 +172,100 @@ def getwindows(filename,s,prefix,**kwargs):
         print(f"{filename} has xmin: {min(df[x]):0.1E}, xmax: {max(df[x]):0.1E}, range: {max(df[x])-min(df[x]):0.1E}, stepsize: {subwindowWidth:0.1E} (T)")
     generateWindowRecord(windows,filename,prefix)
     return windows, bycoordinates, df, record
-	
+
 def FunctionInputHandler(df,f=None):
-	# Force the user (future u) to call functions correctly
-	if isinstance(df, pd.DataFrame):
-		if f is None:
-			f = str(input("Enter Measurement name: "))
-		elif isinstance(f, str):
-			pass
-		else:
-			raise TypeError("Dataframe was passed, but no original file name.")
-	elif isinstance(df, str):
-		f = df
-		with open(f, 'r') as _f:
-			df = pd.read_csv(_f)
-	else:
-		raise TypeError("called function expects a string path to a csv, or dataframe.")
-	return df, f
+    # Force the user (future u) to call functions correctly
+    if isinstance(df, pd.DataFrame):
+        if f is None:
+            f = str(input("Enter Measurement name: "))
+        elif isinstance(f, str):
+            pass
+        else:
+            raise TypeError("Dataframe was passed, but no original file name.")
+    elif isinstance(df, str):
+        f = df
+        if "csv" in f.lower() or "dat" in f.lower():
+            with open(f, 'r') as _f:
+                df = pd.read_csv(_f)
+        else:
+            raise ModuleNotFoundError("")
+    else:
+        raise TypeError("called function expects a string path to a csv, or dataframe.")
+    return df, f
+
+
+def _hdf_recurse(f, pre=''):
+    # list the current groups.
+    groups = list(f)
+    # Print the parent
+    for group in groups:
+        try:
+            p2 = f'{pre}[\"{group}\"]'
+            _hdf_recurse(f[group], pre=p2)
+        except TypeError:
+            if '["Data"]["Data"]' in p2:
+                continue
+            elif '["Channels"]' in p2:
+                continue
+            s = f'{f[group][()]}'
+            l = s.split('\n')
+            print(f'{p2}:\n{len(p2) * ' '}{f[group][()]}')
+            for i in l:
+                pp(i, indent=len(p2), width=80)
+
+def _hdf_data(f, fn=''):
+    _hdf_recurse(f)
+    dset = f["Data"]["Data"]
+    darray = dset[()]
+    cols = [f"{j[0].decode('utf-8')}" for j in list(f["Data"]["Channel names"])]
+    try:
+        if darray.ndim == 2:
+            print('d=2', darray.shape, darray.shape[1] == len(cols))
+            df = pd.DataFrame(darray, columns=cols)
+        elif darray.ndim == 3:
+            print(fn, 'd=3', darray.shape, darray.shape[1] == len(cols))
+            shape = darray.shape[-1]
+            for i in range(shape):
+                # print(f"np[:,:,{i}]")
+                if i == 0:
+                    df = pd.DataFrame(darray[:, :, i], columns=cols)
+                else:
+                    df = pd.concat([df,
+                                    pd.DataFrame(darray[:, :, i], columns=cols)],
+                                    axis=0, ignore_index=True)
+        return df
+    except Exception as e:
+        print('\n' * 10)
+        print(fn)
+        cols = [f"{j[0].decode('utf-8')}" for j in list(f["Data"]["Channel names"])]
+        print(cols)
+        print(list(f["Data"]))
+        print(list(f["Data"]["Channel names"]))
+        print(e)
+        print("Producing unnamed DF from array")
+        print(pd.DataFrame(darray[:, :, i]))
+
+def convert_hdf5_to_csv(hdfpath,dump):
+    files1 = os.listdir(hdfpath)
+    files1 = sorted(files1)
+    f2 = []
+    for i in files1:
+        if i.endswith('hdf5'):
+            f2.append(f'{hdfpath}/{i}')
+
+    files = [h5py.File(f, 'r') for f in f2]
+
+    for i, f in enumerate(files):
+        fn = files1[i].split('.hdf5')[0].split("_")[3]
+        try:
+            df = _hdf_data(f, fn=fn)
+        except:
+            print("FAILURE on ",files1[i])
+            continue
+        # recurse(f, pre=f2[i])
+        print(f"{fn}.csv")
+        with open(f'{dump}/{fn}.csv', 'w') as f:
+            df.to_csv(f, index=False)
 
 
 def GetNumber(name):
@@ -203,7 +281,7 @@ def GetNumber(name):
 def ReadDatFile(file, correction=1, y="P124A (V)"):
     """
         Reads the file, corrects data if necessary
-	c: correction factor to apply on y-column
+    c: correction factor to apply on y-column
     """
     # The correction factor is able to scale a specific
     #   stream of data by a constant. This is used ONLY
@@ -340,28 +418,95 @@ def pairwise(a):
     return res
 
 def quadwise(contacts):
-	from pprint import pprint
-	# len(contacts) choose 4
-	# len_c choose 4 = (len_c choose 2)(len_c-2 choose 2)
+    from pprint import pprint
+    # len(contacts) choose 4
+    # len_c choose 4 = (len_c choose 2)(len_c-2 choose 2)
 
-	# Establish V pairs (aka all 2 ports)
-	pair1 = pairwise(contacts)
-	final = []
-	
-	# For each tuple formed by (N choose 2)
-	for (x1,x2) in pair1:
-		tl = []
-		candidates = []
-		# Find the contacts that are not in in the (N choose 2)
-		for c in contacts:
-			if c not in [x1,x2]:
-				candidates.append(c)
-		# Then formulate (N choose 2)'s compliment
-		# Being (N-2 choose 2)
-		n_2c2 = pairwise(candidates)
-		tl = [(x1,x2,x3,x4) for (x3,x4) in n_2c2]
-		final += tl
-	print("2-port combinations", len(pair1))
-	pprint(pair1)
-	print("4-port combinations",len(final))
-	pprint(final)
+    # Establish V pairs (aka all 2 ports)
+    pair1 = pairwise(contacts)
+    final = []
+
+    # For each tuple formed by (N choose 2)
+    for (x1,x2) in pair1:
+        tl = []
+        candidates = []
+        # Find the contacts that are not in in the (N choose 2)
+        for c in contacts:
+            if c not in [x1,x2]:
+                candidates.append(c)
+        # Then formulate (N choose 2)'s compliment
+        # Being (N-2 choose 2)
+        n_2c2 = pairwise(candidates)
+        tl = [(x1,x2,x3,x4) for (x3,x4) in n_2c2]
+        final += tl
+    pprint(pair1)
+    pprint(final)
+    print("4-port combinations",len(final))
+    print("2-port combinations", len(pair1))
+
+def nLockins(contacts, n=4):
+    # Establish Current source / Drain (aka all 2 port configs)
+    sd = pairwise(contacts)
+
+    # Establish all other contact configurations assuming that "A" of every lockin
+    #						        is on the same contact
+    header = ["Source", "Drain", "Probe A"] + [f"Lockin_{i+1} Probe B" for i in range(n)]
+    final = []
+    consumed = []
+    for (x1,x2) in sd:
+        tl = []
+        candidates = []
+        # Exclude source drain from contact pool.
+        for c in contacts:
+            if c not in [x1,x2]:
+                candidates.append(c)
+        # Exclude contact A from the pool.
+        chanA = candidates.pop(0)
+        # span the remaining contacts.
+        ttl = [chanA]
+        print(candidates)
+        if len(candidates) == 0:
+            pass
+        elif len(candidates) < n and len(candidates) !=0:
+            print ("Criteria 2")
+            while len(candidates) != 0:
+                ttl.append(candidates.pop(0))
+        else:
+            print ("Criteria 3")
+            i = 0
+            while i < n:
+                ttl.append(candidates.pop(0))
+                i += 1
+        tl.append(ttl)
+        final += tl
+
+    print(final)
+
+
+
+
+if __name__ == "__main__":
+    #20250205
+    #base = "20250205"
+    #base = "20250206"
+    base = "20250207"
+    path = r"C:\Users\Tristan\Desktop\work\Research\heremans\MonarkMeasurements\20250218Cooldown6ADMR_Ohmni_Mixer"
+    hdf = path+r'\hdfs'
+    csv = path+r'\csvs'
+
+    convert_hdf5_to_csv(hdf,csv)
+    """
+    a = [1,2,3,4,5,6,33,35,34,37,41,40,36,39,38,42,43,44,45,47,46,49,48,50]
+    b = []
+    for i in a:
+        v = i
+        if i >=25:
+            v = i-2
+        b.append(v)
+    l = pairwise(b)
+    df = pd.DataFrame(l,columns=["Source", "Drain"])
+    with open("20250205_contacts.csv", 'w') as f:
+        df.to_csv(f)
+    print(df)
+    """
+

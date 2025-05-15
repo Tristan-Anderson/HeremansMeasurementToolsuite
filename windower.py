@@ -2,9 +2,8 @@ import numpy as np
 import sys
 import pandas as pd
 from matplotlib import pyplot as plt
-from utilities import FunctionInputHandler
 
-def selectWindower(df,x,y, clickpoints=False, fig=None, ax=None,filename=''):
+def selectWindower(df,x,y, clickpoints=False, fig=None, ax=None,filename='',dpts=None):
     b=""
     cpts = []
     ifg, iax = fig, ax
@@ -14,7 +13,13 @@ def selectWindower(df,x,y, clickpoints=False, fig=None, ax=None,filename=''):
     if fig is None:
         plt.close('all')
         fig,ax = plt.subplots(1)
-        ax.plot(df[x], df[y], label="Data")
+        ax.plot(df[x], df[y], label="Data",color='blue')
+        ax.scatter(df[x], df[y], label="Data",color='blue')
+        if isinstance(dpts, list):
+            for t in dpts:
+                x1, x2 = min(t), max(t)
+                prevsel = df[(df[x] > x1) & (df[x] < x2)]
+                ax.plot(prevsel[x], prevsel[y], color='black')
         ax.grid(True)
         plt.legend(loc='best', frameon=False)
     else:
@@ -23,7 +28,7 @@ def selectWindower(df,x,y, clickpoints=False, fig=None, ax=None,filename=''):
         ax[1].scatter(df[x], df[y],color='blue')
     coords = plt.ginput(2,timeout=0)
     if len(coords) == 0:
-        plt.savefig(f'QH_{filename.split('.dat')[0]}-{cont}')
+        plt.savefig(f'QH_{"".join(filename.split('.')[:-1])}-{cont}')
         print("windower: made it into break condition in first loop.")
         return []
     xax = [c[0] for c in coords]
@@ -31,9 +36,9 @@ def selectWindower(df,x,y, clickpoints=False, fig=None, ax=None,filename=''):
     other = df[~(df[x]<max(xax)) | ~(df[x]>min(xax))]
     plt.close('all')
     fig,ax = plt.subplots(2)
-    ax[0].scatter(other[x], other[y],color='blue')
     ax[0].scatter(cut[x], cut[y],color='red')
     ax[1].scatter(cut[x], cut[y],color='red')
+    ax[0].scatter(other[x], other[y],color='blue')
     for i in ax:
         i.grid(True)
         i.set_xlabel(x)
@@ -42,7 +47,7 @@ def selectWindower(df,x,y, clickpoints=False, fig=None, ax=None,filename=''):
         c2 = plt.ginput(2,timeout=0)
         if len(c2) == 0:
             print("windower: made it into break condition in second loop.")
-            plt.savefig(f'QH_{filename.split('.dat')[0]}-{cont}')
+            plt.savefig(f'QH_{"".join(filename.split('.')[:-1])}-{cont}')
             return xax
         else:
             plt.close('all')
@@ -51,15 +56,20 @@ def selectWindower(df,x,y, clickpoints=False, fig=None, ax=None,filename=''):
             xax = sorted(xax)
             cut = df[(df[x]<max(xax)) & (df[x]>min(xax))]
             other = df[~(df[x]<max(xax)) | ~(df[x]>min(xax))]
-            ax[0].scatter(other[x], other[y],color='blue')
-            ax[0].scatter(cut[x], cut[y],color='red')
-            ax[1].scatter(cut[x], cut[y],color='red')
+            ax[0].plot(other[x], other[y],color='blue')
+            ax[0].plot(cut[x], cut[y],color='red')
+            ax[1].plot(cut[x], cut[y],color='red')
+            if isinstance(dpts, list):
+                for t in dpts:
+                    x1,x2 = min(t),max(t)
+                    prevsel = df[(df[x]>x1)&(df[x]<x2)]
+                    ax[0].plot(prevsel[x],prevsel[y])
         for i in ax:
             i.grid(True)
             i.set_xlabel(x)
             i.set_ylabel(y+" (1/v)")
         cont+=1
-        plt.savefig(f'QH_{filename.split('.dat')[0]}-{cont}')
+        plt.savefig(f'QH_{"".join(filename.split('.')[:-1])}-{cont}')
             
     if clickpoints:
         return xax
